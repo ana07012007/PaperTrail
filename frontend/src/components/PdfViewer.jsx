@@ -21,28 +21,28 @@ export default function PdfViewer({ paperId, title, page = 1, excerpt, section, 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-slate-900/50 p-4" onClick={onClose}>
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-4 py-3">
+    <div style={{position:'fixed',inset:0,zIndex:50,display:'flex',background:'rgba(0,0,0,.72)',padding:16}} onClick={onClose}>
+      <div style={{margin:'auto',display:'flex',flexDirection:'column',width:'min(1180px,100%)',height:'100%',overflow:'hidden',border:'1px solid #27272a',borderRadius:12,background:'#111114',boxShadow:'0 24px 80px rgba(0,0,0,.55)'}} onClick={(e) => e.stopPropagation()}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,borderBottom:'1px solid #27272a',padding:'10px 14px'}}>
           <div className="min-w-0">
-            <p className="truncate font-medium text-slate-900">{title}</p>
-            <p className="text-xs text-slate-500">{section ? `${section} · ` : ''}page {page}</p>
+            <p style={{margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:13,fontWeight:700}}>{title}</p>
+            <p style={{margin:'3px 0 0',color:'#71717a',fontSize:10}}>{section ? `${section} · ` : ''}page {page}</p>
           </div>
           <button className="btn-ghost" onClick={onClose}>Close</button>
         </div>
         {excerpt && (
-          <div className="max-h-40 overflow-y-auto border-b border-slate-200 bg-amber-50 px-4 py-3 text-sm text-slate-700">
-            <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Passage used</span>
+          <div style={{maxHeight:160,overflowY:'auto',borderBottom:'1px solid #27272a',background:'#1b1810',padding:'10px 14px',color:'#d4d4d8',fontSize:12}}>
+            <span style={{marginRight:8,color:'#fbbf24',fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em'}}>Passage used</span>
             {excerpt}
           </div>
         )}
-        <div className="flex-1 bg-slate-100">
+        <div style={{flex:1,background:'#18181b'}}>
           {error ? (
-            <p className="p-6 text-red-600">{error}</p>
+            <p style={{padding:24,color:'#fca5a5'}}>{error}</p>
           ) : url ? (
-            <iframe key={page} title={title} src={`${url}#page=${page}`} className="h-full w-full" />
+            <iframe key={page} title={title} src={`${url}#page=${page}`} style={{width:'100%',height:'100%',border:0}} />
           ) : (
-            <p className="p-6 text-slate-500">Loading PDF…</p>
+            <p style={{padding:24,color:'#71717a'}}>Loading PDF…</p>
           )}
         </div>
       </div>

@@ -20,32 +20,29 @@ function SourceList({ sources, onOpen }) {
   if (!sources.length) return null;
 
   return (
-    <div className="mt-3 border-t border-slate-100 pt-3">
-      <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #303036'}}>
+      <div style={{marginBottom:6,display:'flex',justifyContent:'space-between',color:'#71717a',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em'}}>
         <span>{showAll || cited.length === 0 ? 'Retrieved passages' : 'Sources'}</span>
         {cited.length > 0 && cited.length < sources.length && (
-          <button className="font-normal normal-case tracking-normal text-indigo-600 hover:underline" onClick={() => setShowAll(!showAll)}>
+          <button style={{border:0,background:'transparent',color:'#c4b5fd',fontSize:10}} onClick={() => setShowAll(!showAll)}>
             {showAll ? 'Show cited only' : `Show all ${sources.length} retrieved`}
           </button>
         )}
       </div>
-      <ul className="space-y-1.5">
+      <div>
         {shown.map((s) => (
-          <li key={s.id}>
-            <button
-              onClick={() => onOpen(s)}
-              className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-indigo-50"
-              title={s.text}
-            >
-              <span className="mt-0.5 shrink-0 rounded bg-indigo-100 px-1.5 text-xs font-semibold text-indigo-700">{s.id}</span>
-              <span className="min-w-0">
-                <span className="font-medium text-slate-700">{s.paperTitle}</span>
-                <span className="text-slate-400"> · {s.section} · {pageLabel(s)}</span>
-              </span>
-            </button>
-          </li>
+          <button
+            key={s.id}
+            onClick={() => onOpen(s)}
+            className="source-chip"
+            title={s.text}
+          >
+            <span style={{color:'#c4b5fd',fontWeight:800}}>{s.id}</span>
+            <span style={{maxWidth:220,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.paperTitle}</span>
+            <span>· {s.section} · {pageLabel(s)}</span>
+          </button>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -98,62 +95,65 @@ export default function AskPanel({ workspaceId, readyPapers, selected, onOpenSou
   }
 
   return (
-    <section className="card flex min-h-[70vh] flex-col">
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+    <section className="card chat-card">
+      <div className="chat-header">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Ask your papers</h2>
-          <p className="text-xs text-slate-400">Answers come only from {scopeLabel}, with sources.</p>
+          <h2>AI research assistant</h2>
+          <p>Grounded answers from {scopeLabel}</p>
         </div>
-        {history.length > 0 && <button className="text-xs text-slate-400 hover:text-red-600" onClick={clearHistory}>Clear</button>}
+        {history.length > 0 && <button className="btn-ghost" style={{minHeight:30,fontSize:11}} onClick={clearHistory}>Clear history</button>}
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+      <div className="chat-scroll">
         {history.length === 0 && !pending && (
-          <div className="py-10 text-center">
-            <p className="text-slate-500">
+          <div style={{minHeight:'55%',display:'grid',placeItems:'center',textAlign:'center'}}>
+            <div>
+            <div style={{width:42,height:42,margin:'0 auto 12px',display:'grid',placeItems:'center',border:'1px solid #303036',borderRadius:10,background:'#18181b',color:'#a78bfa'}}>AI</div>
+            <p style={{margin:0,color:'#a1a1aa',fontSize:13}}>
               {readyPapers.length ? 'Ask anything about your papers. Try one of these:' : 'Upload a paper and wait until it shows Ready.'}
             </p>
             {readyPapers.length > 0 && (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <div style={{marginTop:14,display:'flex',flexWrap:'wrap',justifyContent:'center',gap:7}}>
                 {SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => ask(s)} className="rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:border-indigo-300 hover:text-indigo-700">
+                  <button key={s} onClick={() => ask(s)} className="btn-secondary" style={{minHeight:32,fontSize:11,fontWeight:500}}>
                     {s}
                   </button>
                 ))}
               </div>
             )}
+            </div>
           </div>
         )}
 
         {history.map((h) => (
-          <div key={h._id} className="space-y-3">
-            <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-600 px-4 py-2 text-sm text-white">{h.question}</div>
-            <div className={`max-w-[95%] rounded-2xl rounded-bl-sm border px-4 py-3 ${h.insufficientEvidence ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+          <div key={h._id}>
+            <div className="message-row user"><div className="message user"><div className="bubble">{h.question}</div></div></div>
+            <div className="message-row">
+            <div className="bubble" style={h.insufficientEvidence ? {borderColor:'#854d0e',background:'#211a10'} : undefined}>
+              <div className="bubble-header">PaperTrail answer</div>
               {h.insufficientEvidence && (
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Not enough evidence in the papers</p>
+                <p style={{margin:'0 0 8px',color:'#fbbf24',fontSize:11,fontWeight:700}}>Not enough evidence in the selected papers</p>
               )}
               <AnswerText text={h.answer} sources={h.sources} onCite={onOpenSource} />
               <SourceList sources={h.sources} onOpen={onOpenSource} />
+            </div>
             </div>
           </div>
         ))}
 
         {pending && (
-          <div className="space-y-3">
-            <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-600 px-4 py-2 text-sm text-white">{pending}</div>
-            <div className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-              <span className="animate-pulse">Searching your papers and writing an answer…</span>
-            </div>
-          </div>
+          <>
+            <div className="message-row user"><div className="message user"><div className="bubble">{pending}</div></div></div>
+            <div className="bubble" style={{width:'fit-content',color:'#71717a',animation:'pulse 1.5s infinite'}}>Searching papers and writing an answer…</div>
+          </>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="border-t border-slate-100 p-4">
-        {error && <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        <div className="flex gap-2">
+      <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="composer">
+        {error && <p style={{margin:'0 0 8px',color:'#fca5a5',fontSize:11}}>{error}</p>}
+        <div className="composer-box">
           <textarea
-            className="input min-h-[44px] resize-none"
             rows={1}
             placeholder={readyPapers.length ? 'e.g. Which datasets do these papers use?' : 'No ready papers yet'}
             value={question}
@@ -161,9 +161,9 @@ export default function AskPanel({ workspaceId, readyPapers, selected, onOpenSou
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } }}
           />
-          <button className="btn-primary" disabled={!question.trim() || !!pending || !readyPapers.length}>Ask</button>
+          <button className="send-button" disabled={!question.trim() || !!pending || !readyPapers.length} title="Ask">↑</button>
         </div>
-        <p className="mt-2 text-xs text-slate-400">AI answers can still be wrong. Click a source to check it in the original paper.</p>
+        <p style={{margin:'7px 0 0',color:'#52525b',fontSize:10}}>Answers are limited to the selected papers. Verify important claims in the source PDF.</p>
       </form>
     </section>
   );

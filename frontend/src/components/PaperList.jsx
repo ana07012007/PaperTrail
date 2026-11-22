@@ -1,12 +1,6 @@
 import { api } from '../api';
 
-const STATUS_STYLE = {
-  queued: 'bg-slate-100 text-slate-600',
-  processing: 'bg-amber-100 text-amber-700',
-  ready: 'bg-emerald-100 text-emerald-700',
-  failed: 'bg-red-100 text-red-700',
-};
-const STATUS_LABEL = { queued: 'Queued', processing: 'Processing…', ready: 'Ready', failed: 'Failed' };
+const STATUS_LABEL = { queued: 'Queued', processing: 'Processing', ready: 'Ready', failed: 'Failed' };
 
 export default function PaperList({ papers, selected, onToggle, onClearSelection, onChanged, onOpen }) {
   async function remove(paper) {
@@ -21,57 +15,53 @@ export default function PaperList({ papers, selected, onToggle, onClearSelection
   }
 
   return (
-    <div className="card">
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">Papers ({papers.length})</h2>
-        {selected.size > 0 ? (
-          <button className="text-xs text-indigo-600 hover:underline" onClick={onClearSelection}>
-            Clear selection ({selected.size})
+    <div className="card library-card">
+      <div className="library-header">
+        <h2>Papers <span style={{color:'#71717a',fontWeight:500}}>({papers.length})</span></h2>
+        {selected.size > 0 && (
+          <button className="btn-ghost" style={{minHeight:28,padding:'0 6px',fontSize:10}} onClick={onClearSelection}>
+            Clear {selected.size}
           </button>
-        ) : (
-          papers.length > 0 && <span className="text-xs text-slate-400">Tick papers to narrow questions</span>
         )}
       </div>
-
-      {papers.length === 0 ? (
-        <p className="px-4 py-8 text-center text-sm text-slate-400">No papers yet.</p>
-      ) : (
-        <ul className="max-h-[60vh] divide-y divide-slate-100 overflow-y-auto">
-          {papers.map((p) => (
-            <li key={p._id} className="flex gap-3 px-4 py-3">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 accent-indigo-600"
-                disabled={p.status !== 'ready'}
-                checked={selected.has(p._id)}
-                onChange={() => onToggle(p._id)}
-                aria-label={`Include ${p.title} in questions`}
-              />
-              <div className="min-w-0 flex-1">
-                <button onClick={() => onOpen(p)} className="block text-left text-sm font-medium leading-snug text-slate-800 hover:text-indigo-700">
-                  {p.title}
-                </button>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_STYLE[p.status]}`}>{STATUS_LABEL[p.status]}</span>
-                  {p.status === 'ready' && <span>{p.numPages} pages · {p.numChunks} chunks</span>}
-                  <button onClick={() => remove(p)} className="ml-auto hover:text-red-600">Remove</button>
-                </div>
-                {p.status === 'failed' && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {p.error}{' '}
-                    <button onClick={() => reprocess(p)} className="font-medium underline">Retry</button>
-                  </p>
-                )}
-                {p.status === 'ready' && p.sections?.length > 0 && (
-                  <p className="mt-1 truncate text-xs text-slate-400" title={p.sections.join(' · ')}>
-                    {p.sections.join(' · ')}
-                  </p>
-                )}
+      <div style={{overflowY:'auto',flex:1}}>
+        {papers.length === 0 ? (
+          <div style={{padding:'34px 18px',textAlign:'center',color:'#71717a',fontSize:12}}>No papers in this workspace.</div>
+        ) : papers.map((paper) => (
+          <div className="paper-row" key={paper._id}>
+            <input
+              type="checkbox"
+              disabled={paper.status !== 'ready'}
+              checked={selected.has(paper._id)}
+              onChange={() => onToggle(paper._id)}
+              aria-label={`Include ${paper.title} in questions`}
+              style={{width:14,height:14,accentColor:'#8b5cf6'}}
+            />
+            <button className="pdf-icon" onClick={() => onOpen(paper)} title="Open PDF" style={{border:0}}>PDF</button>
+            <div style={{minWidth:0}}>
+              <button className="paper-title" onClick={() => onOpen(paper)}>{paper.title}</button>
+              <div className="paper-details">
+                <span className={`status status-${paper.status}`}><span className="status-dot" />{STATUS_LABEL[paper.status]}</span>
+                {paper.status === 'ready' && <span style={{marginLeft:6}}>{paper.numPages || 0} pages</span>}
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
+              {paper.status === 'failed' && (
+                <div style={{marginTop:5,color:'#f87171',fontSize:10}}>
+                  {paper.error || 'Processing failed'}{' '}
+                  <button onClick={() => reprocess(paper)} style={{border:0,background:'transparent',color:'#c4b5fd',padding:0,textDecoration:'underline'}}>Retry</button>
+                </div>
+              )}
+            </div>
+            <button
+              className="btn-ghost"
+              onClick={() => remove(paper)}
+              title="Remove paper"
+              style={{minHeight:28,width:28,padding:0,fontSize:16,color:'#71717a'}}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

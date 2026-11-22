@@ -7,14 +7,9 @@ import WorkspacePage from './pages/WorkspacePage';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-10 text-center text-slate-500">Loading…</div>;
+  if (loading) return <div style={{padding:40,textAlign:'center',color:'#a1a1aa'}}>Loading…</div>;
   if (!user) return <Navigate to="/login" replace />;
-  return (
-    <>
-      <Navbar />
-      {children}
-    </>
-  );
+  return <div className="app-shell"><Navbar /><main className="content-area">{children}</main></div>;
 }
 
 export default function App() {

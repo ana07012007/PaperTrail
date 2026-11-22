@@ -14,6 +14,7 @@ export const config = {
   mongoUri: required('MONGODB_URI'),
   jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   aiServiceUrl: (process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/$/, ''),
   aiServiceKey: process.env.AI_SERVICE_KEY || '',
   clientOrigin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(','),
