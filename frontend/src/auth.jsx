@@ -33,12 +33,18 @@ export function AuthProvider({ children }) {
     setUser(d.user);
   }, []);
 
+  const googleLogin = useCallback(async (credential) => {
+    const d = await api('/auth/google', { method: 'POST', body: { credential } });
+    tokenStore.set(d.token);
+    setUser(d.user);
+  }, []);
+
   const logout = useCallback(() => {
     tokenStore.clear();
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, register, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, register, googleLogin, logout }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

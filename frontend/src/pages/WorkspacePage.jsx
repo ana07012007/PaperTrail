@@ -43,15 +43,17 @@ export default function WorkspacePage() {
   const readyPapers = papers.filter((p) => p.status === 'ready');
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-5">
-        <Link to="/" className="text-sm text-slate-500 hover:text-indigo-600">← All workspaces</Link>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">{workspace.name}</h1>
-        {workspace.description && <p className="text-slate-500">{workspace.description}</p>}
+    <div className="page">
+      <div className="page-heading" style={{marginBottom:14}}>
+        <div>
+          <Link to="/" style={{color:'#71717a',fontSize:11,textDecoration:'none'}}>← All workspaces</Link>
+          <h1 style={{fontSize:22,marginTop:5}}>{workspace.name}</h1>
+          {workspace.description && <p>{workspace.description}</p>}
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        <aside className="space-y-4">
+      <div className="workspace-layout">
+        <aside className="workspace-sidebar">
           <UploadBox workspaceId={id} onUploaded={(newPapers) => setPapers((p) => [...newPapers, ...p])} />
           <PaperList
             papers={papers}
@@ -74,6 +76,6 @@ export default function WorkspacePage() {
       </div>
 
       {viewing && <PdfViewer {...viewing} onClose={() => setViewing(null)} />}
-    </main>
+    </div>
   );
 }

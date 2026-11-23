@@ -12,7 +12,7 @@ function Inline({ text, sourceById, onCite }) {
           key={i}
           onClick={() => onCite(source)}
           title={`${source.paperTitle} · ${source.section} · page ${source.pageStart}`}
-          className="mx-0.5 rounded bg-indigo-100 px-1 align-baseline text-[11px] font-semibold text-indigo-700 hover:bg-indigo-200"
+          style={{margin:'0 2px',border:'1px solid #4c3d73',borderRadius:5,background:'#211a32',color:'#ddd6fe',padding:'1px 5px',fontSize:10,fontWeight:800}}
         >
           {cite[1]}
         </button>
@@ -40,10 +40,10 @@ export default function AnswerText({ text, sources, onCite }) {
   }
 
   return (
-    <div className="space-y-2 text-sm leading-relaxed text-slate-700">
+    <div style={{display:'grid',gap:7,fontSize:13,lineHeight:1.65,color:'#d4d4d8'}}>
       {blocks.map((b, i) =>
         b.type === 'list' ? (
-          <ul key={i} className="list-disc space-y-1 pl-5">
+          <ul key={i} style={{margin:0,paddingLeft:18}}>
             {b.items.map((item, j) => (
               <li key={j}><Inline text={item} sourceById={sourceById} onCite={onCite} /></li>
             ))}

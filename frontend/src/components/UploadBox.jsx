@@ -26,7 +26,7 @@ export default function UploadBox({ workspaceId, onUploaded }) {
   }
 
   return (
-    <div>
+    <div className="card" style={{padding:12}}>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -34,15 +34,17 @@ export default function UploadBox({ workspaceId, onUploaded }) {
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); upload(e.dataTransfer.files); }}
         disabled={uploading}
-        className={`flex w-full flex-col items-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
-          dragging ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 bg-white hover:border-indigo-400'
-        }`}
+        style={{
+          width:'100%', minHeight:112, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+          border:'1px dashed', borderColor:dragging?'#8b5cf6':'#34343a', borderRadius:9,
+          background:dragging?'rgba(139,92,246,.08)':'#0d0d10', color:'#a1a1aa', textAlign:'center'
+        }}
       >
-        <svg className="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <svg width="28" height="28" style={{color:'#a78bfa'}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V3m0 0L7.5 7.5M12 3l4.5 4.5M3 15v4.5A1.5 1.5 0 004.5 21h15a1.5 1.5 0 001.5-1.5V15" />
         </svg>
-        <span className="mt-2 text-sm font-medium text-slate-700">{uploading ? 'Uploading…' : 'Upload research papers'}</span>
-        <span className="text-xs text-slate-400">Drop PDFs here or click to browse · up to 10 at a time</span>
+        <span style={{marginTop:8,fontSize:12,fontWeight:700,color:'#e4e4e7'}}>{uploading ? 'Uploading…' : 'Upload research papers'}</span>
+        <span style={{marginTop:4,fontSize:10,color:'#71717a'}}>Drop PDFs or browse · 10 files maximum</span>
       </button>
       <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple hidden onChange={(e) => upload(e.target.files)} />
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
