@@ -1,7 +1,7 @@
-// Renders the LLM answer: paragraphs, "- " bullet lists, **bold**, and [S1] citations as clickable chips.
+// Renders the LLM answer: paragraphs, "- " bullet lists, **bold**, *italic*, and [S1] citations as clickable chips.
 
 function Inline({ text, sourceById, onCite }) {
-  const parts = text.split(/(\[S\d+\]|\*\*[^*]+\*\*)/g).filter(Boolean);
+  const parts = text.split(/(\[S\d+\]|\*\*[^*]+\*\*|\*[^*\s][^*]*\*)/g).filter(Boolean);
   return parts.map((part, i) => {
     const cite = part.match(/^\[(S\d+)\]$/);
     if (cite) {
@@ -19,6 +19,7 @@ function Inline({ text, sourceById, onCite }) {
       );
     }
     if (part.startsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.length > 2 && part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>;
     return <span key={i}>{part}</span>;
   });
 }

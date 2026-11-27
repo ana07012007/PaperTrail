@@ -40,7 +40,8 @@ export default function PdfViewer({ paperId, title, page = 1, excerpt, section, 
           {error ? (
             <p style={{padding:24,color:'#fca5a5'}}>{error}</p>
           ) : url ? (
-            <iframe key={page} title={title} src={`${url}#page=${page}`} style={{width:'100%',height:'100%',border:0}} />
+            <iframe key={page} title={title} src={`${url}#page=${page}&view=FitH&navpanes=0`} style={{width:'100%',height:'100%',border:0}} />
+
           ) : (
             <p style={{padding:24,color:'#71717a'}}>Loading PDF…</p>
           )}
