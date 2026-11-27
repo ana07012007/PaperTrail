@@ -120,6 +120,40 @@ const KNOWN_DOMAINS = new Set([
 const SUGGEST_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.co.in', 'outlook.com', 'hotmail.com', 'icloud.com',
   'rediffmail.com', 'protonmail.com', 'live.com', 'gla.ac.in'];
 
+// ---- Allowlist: only these providers may sign up (override with ALLOWED_EMAIL_DOMAINS in .env) ----
+
+export const MAJOR_EMAIL_DOMAINS = [
+  'gmail.com', 'googlemail.com',
+  'outlook.com', 'outlook.in', 'hotmail.com', 'hotmail.co.in', 'live.com', 'live.in', 'msn.com',
+  'yahoo.com', 'yahoo.co.in', 'yahoo.in', 'ymail.com', 'rocketmail.com',
+  'icloud.com', 'me.com', 'mac.com',
+  'aol.com', 'protonmail.com', 'proton.me', 'zoho.com', 'zohomail.in', 'rediffmail.com',
+  'gla.ac.in',
+];
+
+/**
+ * Reads the ALLOWED_EMAIL_DOMAINS setting: empty → the major providers above,
+ * "*" → any domain (the typo, disposable and mail-server checks apply instead),
+ * otherwise a comma-separated list such as "gla.ac.in,gmail.com".
+ */
+export function resolveAllowedDomains(setting = '') {
+  const value = setting.trim().toLowerCase();
+  if (!value) return MAJOR_EMAIL_DOMAINS;
+  if (value === '*') return null;
+  return value.split(',').map((d) => d.trim()).filter(Boolean);
+}
+
+/** For an address outside the allowlist: the allowed address it was probably meant to be, or null. */
+export function closestAllowedEmail(email, allowedDomains) {
+  const [local, domain = ''] = email.toLowerCase().split('@');
+  let best = null;
+  for (const target of allowedDomains) {
+    const distance = editDistance(domain, target);
+    if (distance <= 2 && (!best || distance < best.distance)) best = { target, distance };
+  }
+  return best ? `${local}@${best.target}` : null;
+}
+
 /** Edit distance counting a swap of two neighbouring letters as one edit (gmial → gmail). */
 function editDistance(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);

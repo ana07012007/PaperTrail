@@ -43,6 +43,17 @@ const KNOWN_DOMAINS = new Set([
 const SUGGEST_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.co.in', 'outlook.com', 'hotmail.com', 'icloud.com',
   'rediffmail.com', 'protonmail.com', 'live.com', 'gla.ac.in'];
 
+/** For an address outside the allowlist (fetched from the server): the address it was probably meant to be. */
+export function closestAllowedEmail(email, allowedDomains) {
+  const [local, domain = ''] = email.toLowerCase().split('@');
+  let best = null;
+  for (const target of allowedDomains) {
+    const distance = editDistance(domain, target);
+    if (distance <= 2 && (!best || distance < best.distance)) best = { target, distance };
+  }
+  return best ? `${local}@${best.target}` : null;
+}
+
 /** Edit distance counting a swap of two neighbouring letters as one edit (gmial → gmail). */
 function editDistance(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);

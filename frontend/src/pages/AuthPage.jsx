@@ -1,8 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../api';
 import { useAuth } from '../auth';
-import { emailFormatError, emailTypoSuggestion } from '../utils/email';
+import { closestAllowedEmail, emailFormatError, emailTypoSuggestion } from '../utils/email';
 import { PASSWORD_RULES, passwordError } from '../utils/password';
+
+/**
+ * Domain problem with a well-formed sign-up email, or null if it is fine.
+ * allowed: list from the server (only these may sign up), null (any domain), or undefined (not loaded yet).
+ */
+function emailDomainIssue(email, allowed) {
+  if (Array.isArray(allowed)) {
+    const domain = email.split('@')[1];
+    if (allowed.includes(domain)) return null;
+    return { domain, suggestion: closestAllowedEmail(email, allowed), notAccepted: true };
+  }
+  const suggestion = emailTypoSuggestion(email);
+  return suggestion ? { suggestion } : null;
+}
 
 export default function AuthPage({ mode }) {
   const isLogin = mode === 'login';
@@ -17,10 +32,18 @@ export default function AuthPage({ mode }) {
 
   // Sign-up only: existing accounts keep logging in with whatever email they registered with.
   const normalizedEmail = form.email.trim().toLowerCase();
+  const [allowedDomains, setAllowedDomains] = useState(undefined);
   const emailError = !isLogin && emailTouched ? emailFormatError(normalizedEmail) : null;
-  const emailSuggestion = !isLogin && emailTouched && !emailError ? emailTypoSuggestion(normalizedEmail) : null;
+  const emailIssue = !isLogin && emailTouched && !emailError ? emailDomainIssue(normalizedEmail, allowedDomains) : null;
+  const emailSuggestion = emailIssue?.suggestion || null;
 
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+
+  useEffect(() => {
+    if (isLogin) return;
+    // If this fails the server still enforces the list; the form just checks less up front.
+    api('/auth/email-rules').then((d) => setAllowedDomains(d.allowedDomains)).catch(() => {});
+  }, [isLogin]);
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -63,7 +86,7 @@ export default function AuthPage({ mode }) {
     event.preventDefault();
     setError('');
     const email = form.email.trim().toLowerCase();
-    if (!isLogin && (emailFormatError(email) || emailTypoSuggestion(email))) {
+    if (!isLogin && (emailFormatError(email) || emailDomainIssue(email, allowedDomains))) {
       setEmailTouched(true);
       return;
     }
@@ -122,10 +145,19 @@ export default function AuthPage({ mode }) {
           <label className="auth-field">Email
             <input className="input" type="email" value={form.email} onChange={set('email')} onBlur={() => setEmailTouched(true)}
               required autoComplete="email" placeholder="you@company.com"
-              aria-invalid={emailError || emailSuggestion ? 'true' : undefined}
-              aria-describedby={emailError || emailSuggestion ? 'email-error' : undefined}
-              style={emailError || emailSuggestion ? {borderColor:'#b91c1c'} : undefined} />
+              aria-invalid={emailError || emailIssue ? 'true' : undefined}
+              aria-describedby={emailError || emailIssue ? 'email-error' : undefined}
+              style={emailError || emailIssue ? {borderColor:'#b91c1c'} : undefined} />
             {emailError && <span id="email-error" role="alert" style={{display:'block',marginTop:6,color:'#fca5a5',fontSize:12,fontWeight:400}}>{emailError}</span>}
+            {emailIssue?.notAccepted && !emailSuggestion && (
+              <span id="email-error" role="alert" style={{display:'block',marginTop:6,color:'#fca5a5',fontSize:12,fontWeight:400}}>
+                “{emailIssue.domain}” isn't accepted. Please use Gmail, Outlook, Yahoo, iCloud or another major provider.
+                <details style={{marginTop:4,color:'#a1a1aa'}}>
+                  <summary style={{cursor:'pointer',color:'#c4b5fd'}}>See accepted email providers</summary>
+                  <span style={{display:'block',marginTop:4,lineHeight:1.6}}>{allowedDomains.join(', ')}</span>
+                </details>
+              </span>
+            )}
             {emailSuggestion && (
               <span id="email-error" role="alert" style={{display:'block',marginTop:6,color:'#fca5a5',fontSize:12,fontWeight:400}}>
                 Did you mean{' '}
