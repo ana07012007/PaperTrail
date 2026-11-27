@@ -15,6 +15,8 @@ export const config = {
   jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  // Empty = major providers only (see utils/email.js), "*" = any real domain, or a comma-separated list.
+  allowedEmailDomains: process.env.ALLOWED_EMAIL_DOMAINS || '',
   aiServiceUrl: (process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/$/, ''),
   aiServiceKey: process.env.AI_SERVICE_KEY || '',
   clientOrigin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(','),

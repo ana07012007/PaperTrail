@@ -6,10 +6,27 @@ import { User } from '../models/User.js';
 import { requireAuth, signToken } from '../middleware/auth.js';
 import { HttpError } from '../middleware/errors.js';
 import { config } from '../config.js';
-import { domainAcceptsMail, emailFormatError, emailTypoSuggestion, isDisposableEmail } from '../utils/email.js';
+import {
+  closestAllowedEmail, domainAcceptsMail, emailFormatError, emailTypoSuggestion, isDisposableEmail,
+  MAJOR_EMAIL_DOMAINS, resolveAllowedDomains,
+} from '../utils/email.js';
 import { passwordError } from '../utils/password.js';
 
 const router = Router();
+// null = any domain allowed (open mode); otherwise only these domains can sign up.
+const ALLOWED_DOMAINS = resolveAllowedDomains(config.allowedEmailDomains);
+
+function describeAllowed() {
+  if (ALLOWED_DOMAINS === MAJOR_EMAIL_DOMAINS) return 'Gmail, Outlook, Yahoo, iCloud or another major provider';
+  const shown = ALLOWED_DOMAINS.slice(0, 4).join(', ');
+  const more = ALLOWED_DOMAINS.length - 4;
+  return more > 0 ? `${shown} or one of ${more} other accepted domains` : `an address at ${shown}`;
+}
+
+// Lets the sign-up form check the domain instantly with the same list the server enforces.
+router.get('/email-rules', (_req, res) => {
+  res.json({ allowedDomains: ALLOWED_DOMAINS });
+});
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const googleClient = new OAuth2Client(config.googleClientId);
@@ -22,14 +39,25 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!name) throw new HttpError(400, 'Name is required');
   const emailError = emailFormatError(email);
   if (emailError) throw new HttpError(400, emailError);
-  const suggestion = emailTypoSuggestion(email);
-  if (suggestion) throw new HttpError(400, `Did you mean ${suggestion}? Please check the spelling after the @.`);
-  if (isDisposableEmail(email)) {
-    throw new HttpError(400, 'Temporary or disposable email addresses are not allowed. Please use your regular email.');
-  }
-  if ((await domainAcceptsMail(email)) === false) {
-    throw new HttpError(400, `The email domain "${email.split('@')[1]}" doesn't exist or can't receive email. ` +
-      'Check the part after the @ for typos.');
+  if (ALLOWED_DOMAINS) {
+    const domain = email.split('@')[1];
+    if (!ALLOWED_DOMAINS.includes(domain)) {
+      const suggestion = closestAllowedEmail(email, ALLOWED_DOMAINS);
+      throw new HttpError(400, suggestion
+        ? `Did you mean ${suggestion}? Please check the spelling after the @.`
+        : `"${domain}" is not an accepted email provider. Please sign up with ${describeAllowed()}.`);
+    }
+  } else {
+    // Open mode (ALLOWED_EMAIL_DOMAINS=*): any domain, as long as it is real and not a throwaway.
+    const suggestion = emailTypoSuggestion(email);
+    if (suggestion) throw new HttpError(400, `Did you mean ${suggestion}? Please check the spelling after the @.`);
+    if (isDisposableEmail(email)) {
+      throw new HttpError(400, 'Temporary or disposable email addresses are not allowed. Please use your regular email.');
+    }
+    if ((await domainAcceptsMail(email)) === false) {
+      throw new HttpError(400, `The email domain "${email.split('@')[1]}" doesn't exist or can't receive email. ` +
+        'Check the part after the @ for typos.');
+    }
   }
   const pwError = passwordError(password);
   if (pwError) throw new HttpError(400, pwError);
