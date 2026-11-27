@@ -6,7 +6,7 @@ import { User } from '../models/User.js';
 import { requireAuth, signToken } from '../middleware/auth.js';
 import { HttpError } from '../middleware/errors.js';
 import { config } from '../config.js';
-import { domainAcceptsMail, emailFormatError, isDisposableEmail } from '../utils/email.js';
+import { domainAcceptsMail, emailFormatError, emailTypoSuggestion, isDisposableEmail } from '../utils/email.js';
 
 const router = Router();
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -21,6 +21,8 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!name) throw new HttpError(400, 'Name is required');
   const emailError = emailFormatError(email);
   if (emailError) throw new HttpError(400, emailError);
+  const suggestion = emailTypoSuggestion(email);
+  if (suggestion) throw new HttpError(400, `Did you mean ${suggestion}? Please check the spelling after the @.`);
   if (isDisposableEmail(email)) {
     throw new HttpError(400, 'Temporary or disposable email addresses are not allowed. Please use your regular email.');
   }

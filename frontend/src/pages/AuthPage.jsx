@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
-import { emailFormatError } from '../utils/email';
+import { emailFormatError, emailTypoSuggestion } from '../utils/email';
 
 export default function AuthPage({ mode }) {
   const isLogin = mode === 'login';
@@ -12,7 +12,9 @@ export default function AuthPage({ mode }) {
   const [emailTouched, setEmailTouched] = useState(false);
 
   // Sign-up only: existing accounts keep logging in with whatever email they registered with.
-  const emailError = !isLogin && emailTouched ? emailFormatError(form.email.trim().toLowerCase()) : null;
+  const normalizedEmail = form.email.trim().toLowerCase();
+  const emailError = !isLogin && emailTouched ? emailFormatError(normalizedEmail) : null;
+  const emailSuggestion = !isLogin && emailTouched && !emailError ? emailTypoSuggestion(normalizedEmail) : null;
 
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -57,7 +59,7 @@ export default function AuthPage({ mode }) {
     event.preventDefault();
     setError('');
     const email = form.email.trim().toLowerCase();
-    if (!isLogin && emailFormatError(email)) {
+    if (!isLogin && (emailFormatError(email) || emailTypoSuggestion(email))) {
       setEmailTouched(true);
       return;
     }
@@ -111,9 +113,19 @@ export default function AuthPage({ mode }) {
           <label className="auth-field">Email
             <input className="input" type="email" value={form.email} onChange={set('email')} onBlur={() => setEmailTouched(true)}
               required autoComplete="email" placeholder="you@company.com"
-              aria-invalid={emailError ? 'true' : undefined} aria-describedby={emailError ? 'email-error' : undefined}
-              style={emailError ? {borderColor:'#b91c1c'} : undefined} />
+              aria-invalid={emailError || emailSuggestion ? 'true' : undefined}
+              aria-describedby={emailError || emailSuggestion ? 'email-error' : undefined}
+              style={emailError || emailSuggestion ? {borderColor:'#b91c1c'} : undefined} />
             {emailError && <span id="email-error" role="alert" style={{display:'block',marginTop:6,color:'#fca5a5',fontSize:12,fontWeight:400}}>{emailError}</span>}
+            {emailSuggestion && (
+              <span id="email-error" role="alert" style={{display:'block',marginTop:6,color:'#fca5a5',fontSize:12,fontWeight:400}}>
+                Did you mean{' '}
+                <button type="button" onClick={() => setForm((current) => ({ ...current, email: emailSuggestion }))}
+                  style={{border:0,padding:0,background:'none',color:'#c4b5fd',fontSize:12,fontWeight:700,textDecoration:'underline',cursor:'pointer'}}>
+                  {emailSuggestion}
+                </button>?
+              </span>
+            )}
           </label>
           <label className="auth-field">Password
             <input className="input" type="password" value={form.password} onChange={set('password')} required minLength={isLogin ? undefined : 8} autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder={isLogin ? 'Enter your password' : 'At least 8 characters'} />
