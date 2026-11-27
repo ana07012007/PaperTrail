@@ -7,6 +7,7 @@ import { requireAuth, signToken } from '../middleware/auth.js';
 import { HttpError } from '../middleware/errors.js';
 import { config } from '../config.js';
 import { domainAcceptsMail, emailFormatError, emailTypoSuggestion, isDisposableEmail } from '../utils/email.js';
+import { passwordError } from '../utils/password.js';
 
 const router = Router();
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -30,7 +31,8 @@ router.post('/register', authLimiter, async (req, res) => {
     throw new HttpError(400, `The email domain "${email.split('@')[1]}" doesn't exist or can't receive email. ` +
       'Check the part after the @ for typos.');
   }
-  if (password.length < 8) throw new HttpError(400, 'Password must be at least 8 characters');
+  const pwError = passwordError(password);
+  if (pwError) throw new HttpError(400, pwError);
   if (await User.exists({ email })) throw new HttpError(409, 'An account with this email already exists');
 
   const user = await User.create({ name, email, passwordHash: await bcrypt.hash(password, 10) });

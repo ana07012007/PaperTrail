@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { emailFormatError, emailTypoSuggestion } from '../utils/email';
+import { PASSWORD_RULES, passwordError } from '../utils/password';
 
 export default function AuthPage({ mode }) {
   const isLogin = mode === 'login';
@@ -10,6 +11,9 @@ export default function AuthPage({ mode }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  // Sign-up only: the checklist appears once the user starts typing a password.
+  const showPasswordRules = !isLogin && (passwordTouched || form.password.length > 0);
 
   // Sign-up only: existing accounts keep logging in with whatever email they registered with.
   const normalizedEmail = form.email.trim().toLowerCase();
@@ -61,6 +65,11 @@ export default function AuthPage({ mode }) {
     const email = form.email.trim().toLowerCase();
     if (!isLogin && (emailFormatError(email) || emailTypoSuggestion(email))) {
       setEmailTouched(true);
+      return;
+    }
+    if (!isLogin && passwordError(form.password)) {
+      setPasswordTouched(true);
+      setError(passwordError(form.password));
       return;
     }
     setBusy(true);
@@ -128,7 +137,23 @@ export default function AuthPage({ mode }) {
             )}
           </label>
           <label className="auth-field">Password
-            <input className="input" type="password" value={form.password} onChange={set('password')} required minLength={isLogin ? undefined : 8} autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder={isLogin ? 'Enter your password' : 'At least 8 characters'} />
+            <input className="input" type="password" value={form.password} onChange={set('password')} onBlur={() => setPasswordTouched(true)}
+              required minLength={isLogin ? undefined : 8} autoComplete={isLogin ? 'current-password' : 'new-password'}
+              placeholder={isLogin ? 'Enter your password' : 'Letters, numbers and a special character'}
+              aria-describedby={showPasswordRules ? 'password-rules' : undefined} />
+            {showPasswordRules && (
+              <ul id="password-rules" aria-live="polite" style={{listStyle:'none',margin:'8px 0 0',padding:0,display:'grid',gap:3,fontSize:12,fontWeight:400}}>
+                {PASSWORD_RULES.map((rule) => {
+                  const ok = rule.test(form.password);
+                  return (
+                    <li key={rule.label} style={{color: ok ? '#86efac' : passwordTouched ? '#fca5a5' : '#a1a1aa'}}>
+                      <span aria-hidden="true" style={{display:'inline-block',width:16}}>{ok ? '✓' : '•'}</span>
+                      {rule.label}<span className="sr-only">{ok ? ' – done' : ' – not yet'}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </label>
 
           {error && <div style={{marginTop:14,border:'1px solid #7f1d1d',borderRadius:8,background:'rgba(127,29,29,.12)',padding:'9px 10px',color:'#fca5a5',fontSize:12}}>{error}</div>}
