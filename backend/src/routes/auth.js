@@ -6,7 +6,7 @@ import { User } from '../models/User.js';
 import { requireAuth, signToken } from '../middleware/auth.js';
 import { HttpError } from '../middleware/errors.js';
 import { config } from '../config.js';
-import { emailFormatError, isDisposableEmail } from '../utils/email.js';
+import { domainAcceptsMail, emailFormatError, isDisposableEmail } from '../utils/email.js';
 
 const router = Router();
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -23,6 +23,10 @@ router.post('/register', authLimiter, async (req, res) => {
   if (emailError) throw new HttpError(400, emailError);
   if (isDisposableEmail(email)) {
     throw new HttpError(400, 'Temporary or disposable email addresses are not allowed. Please use your regular email.');
+  }
+  if ((await domainAcceptsMail(email)) === false) {
+    throw new HttpError(400, `The email domain "${email.split('@')[1]}" doesn't exist or can't receive email. ` +
+      'Check the part after the @ for typos.');
   }
   if (password.length < 8) throw new HttpError(400, 'Password must be at least 8 characters');
   if (await User.exists({ email })) throw new HttpError(409, 'An account with this email already exists');

@@ -1,6 +1,8 @@
 // Email rules for sign-up. The frontend has the same format rules (frontend/src/utils/email.js)
 // for instant feedback; this file is the one that is enforced.
 
+import dns from 'node:dns';
+
 const LOCAL_RE = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+$/;
 const LABEL_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
@@ -52,4 +54,54 @@ export function isDisposableEmail(email) {
     if (DISPOSABLE_DOMAINS.has(labels.slice(i).join('.'))) return true;
   }
   return false;
+}
+
+// ---- Domain check: can this domain receive email at all? ----
+// Catches made-up domains (asdf@jsaldf.com). It cannot tell whether a mailbox exists at a real
+// provider (random@gmail.com); only a verification email can do that.
+
+const resolver = new dns.promises.Resolver({ timeout: 2500, tries: 2 });
+const domainCache = new Map(); // domain -> { ok, expires }
+const CACHE_MS = 60 * 60 * 1000;
+// DNS answers that mean "this name definitely has no records" (as opposed to a lookup failure).
+const NOT_FOUND = new Set(['ENOTFOUND', 'ENODATA', 'NXDOMAIN']);
+
+async function hasRecords(lookup) {
+  try {
+    return (await lookup()).length > 0;
+  } catch (err) {
+    if (NOT_FOUND.has(err.code)) return false;
+    throw err;
+  }
+}
+
+/**
+ * true  – the domain has mail servers (MX), or an address record that mail falls back to (RFC 5321)
+ * false – the domain does not exist, or publishes a "null MX" saying it accepts no mail (RFC 7505)
+ * null  – DNS could not be reached; callers should let the sign-up through rather than block everyone
+ */
+export async function domainAcceptsMail(email) {
+  const domain = email.toLowerCase().split('@')[1];
+  const cached = domainCache.get(domain);
+  if (cached && cached.expires > Date.now()) return cached.ok;
+
+  let ok;
+  try {
+    let mx = [];
+    try {
+      mx = await resolver.resolveMx(domain);
+    } catch (err) {
+      if (!NOT_FOUND.has(err.code)) throw err;
+    }
+    if (mx.length) {
+      ok = mx.some((r) => r.exchange && r.exchange !== '.');
+    } else {
+      ok = (await hasRecords(() => resolver.resolve4(domain))) || (await hasRecords(() => resolver.resolve6(domain)));
+    }
+  } catch (err) {
+    console.warn(`Email domain check skipped for ${domain}: ${err.code || err.message}`);
+    return null;
+  }
+  domainCache.set(domain, { ok, expires: Date.now() + CACHE_MS });
+  return ok;
 }
