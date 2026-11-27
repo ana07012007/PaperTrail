@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { emailFormatError } from '../utils/email';
 
 export default function AuthPage({ mode }) {
   const isLogin = mode === 'login';
@@ -8,6 +9,10 @@ export default function AuthPage({ mode }) {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  // Sign-up only: existing accounts keep logging in with whatever email they registered with.
+  const emailError = !isLogin && emailTouched ? emailFormatError(form.email.trim().toLowerCase()) : null;
 
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -51,9 +56,13 @@ export default function AuthPage({ mode }) {
   async function submit(event) {
     event.preventDefault();
     setError('');
+    const email = form.email.trim().toLowerCase();
+    if (!isLogin && emailFormatError(email)) {
+      setEmailTouched(true);
+      return;
+    }
     setBusy(true);
     try {
-      const email = form.email.trim().toLowerCase();
       if (isLogin) await login(email, form.password);
       else await register(form.name.trim(), email, form.password);
     } catch (err) {
@@ -86,7 +95,7 @@ export default function AuthPage({ mode }) {
       </section>
 
       <section className="auth-panel">
-        <form className="auth-form" onSubmit={submit}>
+        <form className="auth-form" onSubmit={submit} noValidate={!isLogin}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <span className="brand-mark" style={{width:38,height:38}}>PT</span>
             <span style={{fontWeight:750}}>PaperTrail AI</span>
@@ -100,7 +109,11 @@ export default function AuthPage({ mode }) {
             </label>
           )}
           <label className="auth-field">Email
-            <input className="input" type="email" value={form.email} onChange={set('email')} required autoComplete="email" placeholder="you@company.com" />
+            <input className="input" type="email" value={form.email} onChange={set('email')} onBlur={() => setEmailTouched(true)}
+              required autoComplete="email" placeholder="you@company.com"
+              aria-invalid={emailError ? 'true' : undefined} aria-describedby={emailError ? 'email-error' : undefined}
+              style={emailError ? {borderColor:'#b91c1c'} : undefined} />
+            {emailError && <span id="email-error" role="alert" style={{display:'block',marginTop:6,color:'#fca5a5',fontSize:12,fontWeight:400}}>{emailError}</span>}
           </label>
           <label className="auth-field">Password
             <input className="input" type="password" value={form.password} onChange={set('password')} required minLength={isLogin ? undefined : 8} autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder={isLogin ? 'Enter your password' : 'At least 8 characters'} />

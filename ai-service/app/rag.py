@@ -1,9 +1,13 @@
 """Retrieval-Augmented Generation: retrieve chunks, ask Gemini to answer only from them, map citations back."""
 
+import logging
 import re
+import time
 
 from . import config, vector_store
 from .embeddings import embed
+
+log = logging.getLogger("papertrail.ai")
 
 NOT_ENOUGH = "NOT_ENOUGH_EVIDENCE"
 
@@ -49,20 +53,40 @@ def _build_context(chunks: list[dict], titles: dict[str, str]) -> str:
     return "\n\n".join(parts)
 
 
+def _is_temporary(exc: Exception) -> bool:
+    """Overload (503) and rate-limit (429) errors are worth retrying; bad keys or prompts are not."""
+    return getattr(exc, "code", None) in (429, 500, 503) or "UNAVAILABLE" in str(exc)
+
+
 def _call_llm(question: str, context: str) -> str:
     from google.genai import types
 
     prompt = f"Source excerpts:\n\n{context}\n\n---\nQuestion: {question}"
-    try:
-        response = _get_client().models.generate_content(
-            model=config.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.2),
-        )
-    except LLMError:
-        raise
-    except Exception as exc:
-        raise LLMError(f"Gemini request failed: {exc}") from exc
+    models = [m for m in (config.GEMINI_MODEL, config.GEMINI_FALLBACK_MODEL) if m]
+    last_error = None
+    for model in dict.fromkeys(models):
+        for attempt in range(3):
+            try:
+                response = _get_client().models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.2),
+                )
+                break
+            except LLMError:
+                raise
+            except Exception as exc:
+                last_error = exc
+                if not _is_temporary(exc):
+                    raise LLMError(f"Gemini request failed: {exc}") from exc
+                log.warning("Gemini %s busy (attempt %d): %s", model, attempt + 1, exc)
+                time.sleep(2 ** attempt)
+        else:
+            continue  # all retries failed, try the fallback model
+        break
+    else:
+        raise LLMError("Gemini is overloaded right now, please try again in a minute. "
+                       f"({last_error})")
     text = (response.text or "").strip()
     if not text:
         raise LLMError("Gemini returned an empty response (it may have been blocked by safety filters).")

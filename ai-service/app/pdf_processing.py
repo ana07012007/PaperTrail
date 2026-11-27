@@ -83,8 +83,9 @@ def _remove_headers_footers(lines: list[Line], num_pages: int) -> list[Line]:
         if len(ln.text) < 120:
             pages_per_key.setdefault(key(ln.text), set()).add(ln.page)
 
-    threshold = max(3, int(num_pages * 0.4))
-    repeated = {k for k, pages in pages_per_key.items() if num_pages >= 3 and len(pages) >= threshold}
+    # Short papers: a line on every page is a header. Longer ones: on at least 40% of pages.
+    threshold = num_pages if num_pages < 3 else max(3, int(num_pages * 0.4))
+    repeated = {k for k, pages in pages_per_key.items() if num_pages >= 2 and len(pages) >= threshold}
     return [ln for ln in lines if not PAGE_NUMBER_RE.match(ln.text) and key(ln.text) not in repeated]
 
 

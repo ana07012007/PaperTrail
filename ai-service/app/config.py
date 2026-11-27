@@ -11,7 +11,9 @@ DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+# Used when the main model stays overloaded after retries.
+GEMINI_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-flash-latest")
 
 # Shared secret so only the Node backend can call this service. Leave empty to disable.
 AI_SERVICE_KEY = os.getenv("AI_SERVICE_KEY", "")
